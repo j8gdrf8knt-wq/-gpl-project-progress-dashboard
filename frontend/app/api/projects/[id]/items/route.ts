@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const items = await prisma.boQItem.findMany({
+  const items = await prisma.boqItem.findMany({
     where: { projectId: id },
     orderBy: { sl: 'asc' },
   })
@@ -15,8 +15,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const items: Array<Record<string, unknown>> = await req.json()
 
   await prisma.$transaction([
-    prisma.boQItem.deleteMany({ where: { projectId: id } }),
-    prisma.boQItem.createMany({
+    prisma.boqItem.deleteMany({ where: { projectId: id } }),
+    prisma.boqItem.createMany({
       data: items.map((item, i) => ({
         projectId: id,
         sl: Number(item.sl ?? i + 1),
@@ -31,7 +31,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }),
   ])
 
-  const updated = await prisma.boQItem.findMany({
+  const updated = await prisma.boqItem.findMany({
     where: { projectId: id },
     orderBy: { sl: 'asc' },
   })

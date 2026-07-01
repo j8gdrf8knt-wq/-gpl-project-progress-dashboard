@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     where: { projectId },
   })
 
-  const items = await prisma.boQItem.findMany({
+  const items = await prisma.boqItem.findMany({
     where: { projectId },
   })
 
