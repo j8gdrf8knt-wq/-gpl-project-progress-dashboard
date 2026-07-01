@@ -116,7 +116,7 @@ export default function ColumnMapperModal({
                 </select>
                 {mapping[field] !== undefined && (
                   <div className="text-xs mt-1" style={{ color: 'var(--gpl-text2)' }}>
-                    Preview: {detectionResult.preview[0]?.[mapping[field]]}
+                    Preview: {String(detectionResult.preview[0]?.[mapping[field]] ?? '')}
                   </div>
                 )}
               </div>
