@@ -132,7 +132,7 @@ export default function BulkExpenseLogger({
             <div className="overflow-x-auto">
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr style={{ borderColor: 'var(--gpl-border)' }} className="border-b sticky top-0" style={{ background: 'rgba(30,48,80,.3)' }}>
+                  <tr style={{ borderColor: 'var(--gpl-border)', background: 'rgba(30,48,80,.3)' }} className="border-b sticky top-0">
                     <th className="px-2 py-2 text-left font-semibold" style={{ color: 'var(--gpl-text2)' }}>Date</th>
                     <th className="px-2 py-2 text-right font-semibold" style={{ color: 'var(--gpl-text2)' }}>Amount</th>
                     <th className="px-2 py-2 text-left font-semibold" style={{ color: 'var(--gpl-text2)' }}>Category</th>
