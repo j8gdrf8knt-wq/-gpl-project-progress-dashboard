@@ -44,7 +44,7 @@ export default async function ProjectsPage() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((p) => (
+            {projects.map((p: any) => (
               <Link key={p.id} href={`/projects/${p.id}/progress`}>
                 <div
                   className="rounded-2xl border p-5 cursor-pointer transition-all hover:border-[var(--gpl-blue)] hover:shadow-lg group"
