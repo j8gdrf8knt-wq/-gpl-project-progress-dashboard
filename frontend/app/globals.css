@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  --gpl-bg: #060d1f;
+  --gpl-surface: #0b1628;
+  --gpl-card: #0f1e38;
+  --gpl-card2: #132240;
+  --gpl-border: #1e3050;
+  --gpl-blue: #4f9cf9;
+  --gpl-blue2: #2478e8;
+  --gpl-green: #00d488;
+  --gpl-amber: #f5a623;
+  --gpl-red: #ff4d6d;
+  --gpl-purple: #a78bfa;
+  --gpl-text: #e8edf5;
+  --gpl-text2: #7e8da8;
+  --gpl-text3: #3e5070;
+}
+
+@theme inline {
+  --color-gpl-bg: var(--gpl-bg);
+  --color-gpl-surface: var(--gpl-surface);
+  --color-gpl-card: var(--gpl-card);
+  --color-gpl-card2: var(--gpl-card2);
+  --color-gpl-border: var(--gpl-border);
+  --color-gpl-blue: var(--gpl-blue);
+  --color-gpl-blue2: var(--gpl-blue2);
+  --color-gpl-green: var(--gpl-green);
+  --color-gpl-amber: var(--gpl-amber);
+  --color-gpl-red: var(--gpl-red);
+  --color-gpl-purple: var(--gpl-purple);
+  --color-gpl-text: var(--gpl-text);
+  --color-gpl-text2: var(--gpl-text2);
+  --color-gpl-text3: var(--gpl-text3);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--gpl-bg);
+  color: var(--gpl-text);
+  font-family: Inter, system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--gpl-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gpl-border);
+  border-radius: 3px;
+}

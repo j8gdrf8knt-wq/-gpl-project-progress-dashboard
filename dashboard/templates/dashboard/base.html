@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPL Power BI Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="{% static 'dashboard/css/main.css' %}">
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo" style="padding:4px 8px;background:transparent;box-shadow:none">
+  <img src="{% static 'dashboard/logo.png' %}" style="height:40px;width:auto;display:block">
+</div>
+  <div class="topbar-title">
+    <h1 id="tbTitle">Loading…</h1>
+    <p id="tbSub"></p>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div><span id="tbClock"></span></div>
+    <select class="proj-select" id="projSelect" onchange="switchProject(this.value)"></select>
+    <button class="btn btn-blue btn-sm" onclick="openAddProject()">＋ Project</button>
+    <button class="btn btn-outline btn-sm" onclick="openManageProjects()">⚙ Manage</button>
+    <button class="btn btn-outline btn-sm" id="setupBtn" onclick="openSetupProject(PROJECTS[currentProjectId])">⚙ Setup</button>
+    <button class="btn btn-green btn-sm" id="dailyLogBtn" onclick="openLogWork(PROJECTS[currentProjectId])">📋 Daily Log</button>
+  </div>
+</div>
+
+<!-- VIEW TAB BAR -->
+<div id="viewTabBar"></div>
+
+<!-- MAIN CONTENT -->
+<div class="main" id="mainContent"></div>
+
+<!-- MODALS -->
+{% include 'dashboard/partials/modals.html' %}
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon"></span>
+  <span id="toastMsg"></span>
+</div>
+
+<input type="file" id="xlInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileSelect(event)">
+
+<!-- JS: load order matters -->
+<script src="{% static 'dashboard/js/state.js' %}"></script>
+<script src="{% static 'dashboard/js/helpers.js' %}"></script>
+<script src="{% static 'dashboard/js/api.js' %}"></script>
+<script src="{% static 'dashboard/js/projects.js' %}"></script>
+<script src="{% static 'dashboard/js/excel.js' %}"></script>
+<script src="{% static 'dashboard/js/modals.js' %}"></script>
+<script src="{% static 'dashboard/js/render.js' %}"></script>
+<script src="{% static 'dashboard/js/animations.js' %}"></script>
+
+<script>
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(o=>{
+    o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
+  });
+  // Init
+  loadProjects();
+</script>
+
+</body>
+</html>

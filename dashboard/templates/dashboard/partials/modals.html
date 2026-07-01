@@ -1,0 +1,360 @@
+<!-- ADD/EDIT PROJECT -->
+<div class="modal-overlay" id="projFormOverlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3 id="projFormTitle">Add Project</h3>
+      <p>Configure project details</p>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pfId">
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Project Name *</label>
+          <input id="pfName" placeholder="e.g. Rooftop Solar 50kWp">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Client / Location</label>
+          <input id="pfClient" placeholder="e.g. Savar Cantonment">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="pfStart">
+        </div>
+        <div class="form-group">
+          <label>Target Date</label>
+          <input type="date" id="pfTarget">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <button class="btn btn-red btn-sm" id="pfDeleteBtn" onclick="deleteCurrentProject()" style="display:none">🗑 Delete Project</button>
+      </div>
+      <button class="btn btn-outline" onclick="closeModal('projFormOverlay')">Cancel</button>
+      <button class="btn btn-blue" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE PROJECTS -->
+<div class="modal-overlay" id="manageOverlay">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><h3>Manage Projects</h3><p>Select or edit existing projects</p></div>
+    <div class="modal-body" id="manageProjList"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('manageOverlay')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT DATA (Progress) -->
+<div class="modal-overlay" id="editProgressOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-header"><h3>Edit Activity Data</h3><p id="editProgressSub"></p></div>
+    <div class="modal-body">
+      <div class="tbl-wrap">
+        <table class="edit-tbl" id="editProgressTbl">
+          <thead>
+            <tr><td colspan="9" style="font-size:11px;color:var(--text2);padding:6px 8px;background:var(--surface);border-bottom:1px solid var(--border)">
+              ✏️ <strong>Manual entry only</strong> — all other fields are auto-calculated when you click Apply.
+            </td></tr>
+            <tr>
+              <th>Activity Name</th><th>Qty</th><th>Unit</th>
+              <th>Today's Achievement</th><th>Total Present Achievement</th>
+              <th>Start Date</th><th>Target Completion Date</th>
+              <th>Persons / Day</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="editProgressBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <button class="btn btn-outline btn-sm" onclick="addProgressRow()">＋ Add Row</button>
+        <button class="btn btn-outline btn-sm" onclick="loadTemplateActivities()" title="Reset to standard 16 activities">↺ Load Template</button>
+      </div>
+      <button class="btn btn-outline" onclick="closeModal('editProgressOverlay')">Cancel</button>
+      <button class="btn btn-green" onclick="applyProgressEdit()">Apply Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT DATA (BOQ) -->
+<div class="modal-overlay" id="editBOQOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-header"><h3>Edit BOQ / Costing Data</h3><p id="editBOQSub"></p></div>
+    <div class="modal-body">
+      <div class="tbl-wrap">
+        <table class="edit-tbl" id="editBOQTbl">
+          <thead><tr>
+            <th>#</th><th>Item Description</th><th>Qty</th><th>Unit</th>
+            <th>Unit Price (BDT)</th><th>Total Price (BDT)</th>
+            <th>Total Cost (BDT)</th><th>Offer Price (BDT)</th><th></th>
+          </tr></thead>
+          <tbody id="editBOQBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <button class="btn btn-outline btn-sm" onclick="addBOQRow()">＋ Add Row</button>
+      </div>
+      <button class="btn btn-outline" onclick="closeModal('editBOQOverlay')">Cancel</button>
+      <button class="btn btn-green" onclick="applyBOQEdit()">Apply Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- COLUMN MAPPER -->
+<div class="modal-overlay" id="colMapOverlay">
+  <div class="modal">
+    <div class="modal-header"><h3>Map Excel Columns</h3><p>Match your Excel columns to the required fields</p></div>
+    <div class="modal-body" id="colMapBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('colMapOverlay')">Cancel</button>
+      <button class="btn btn-blue" onclick="applyColMap()">Import Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG DAILY WORK -->
+<div class="modal-overlay" id="logWorkOverlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3>Log Daily Work</h3>
+      <p>Record work completed today</p>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Date *</label>
+          <input type="date" id="lwDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Area / Building *</label>
+          <select id="lwArea" style="width:100%">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Activity *</label>
+          <select id="lwActivity" style="width:100%">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Quantity Done *</label>
+          <input type="number" id="lwQty" placeholder="0" step="0.01">
+        </div>
+      </div>
+      <div id="lwMsg" style="margin-top:12px;padding:8px;border-radius:var(--radius-sm);background:var(--surface);color:var(--text2);font-size:12px;display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('logWorkOverlay')">Close</button>
+      <button class="btn btn-blue" onclick="submitDailyLog()">Add to Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP PROJECT (Activities & Areas) -->
+<div class="modal-overlay" id="setupProjOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3>Setup Project</h3>
+      <p>Define activities and areas (one-time setup)</p>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:24px">
+        <h4 style="margin-bottom:12px">Activities & Target Quantities</h4>
+        <div class="tbl-wrap">
+          <table class="edit-tbl" id="setupActivityTbl">
+            <thead><tr>
+              <th>Activity Name</th><th>Unit</th><th>Total Qty</th><th>Weight %</th><th>Man-Day Rate</th><th></th>
+            </tr></thead>
+            <tbody id="setupActivityBody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="addSetupActivityRow()" style="margin-top:8px">＋ Add Activity</button>
+        <button class="btn btn-outline btn-sm" onclick="loadTemplateActivities()" style="margin-top:8px">↺ Load Template (16 Solar Activities)</button>
+      </div>
+      <div>
+        <h4 style="margin-bottom:12px">Areas / Buildings</h4>
+        <div class="tbl-wrap">
+          <table class="edit-tbl" id="setupAreaTbl">
+            <thead><tr>
+              <th>Area / Building Name</th><th></th>
+            </tr></thead>
+            <tbody id="setupAreaBody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="addSetupAreaRow()" style="margin-top:8px">＋ Add Area</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('setupProjOverlay')">Cancel</button>
+      <button class="btn btn-blue" onclick="applySetupProject()">Save Setup</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPENSE LOGGER -->
+<div class="modal-overlay" id="expenseLoggerOverlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3>Log Project Expense</h3>
+      <p>Record actual project costs</p>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="expenseLoggerId" value="">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="expDate">
+        </div>
+        <div class="form-group">
+          <label>Amount (BDT) *</label>
+          <input type="number" id="expAmount" placeholder="0" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Category *</label>
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <select id="expCategory" style="flex:1">
+              <option value="">— Select or add new —</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="toggleCustomCategory()" type="button">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row" id="customCategoryRow" style="display:none">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>New Category Name</label>
+          <input id="expCustomCategory" placeholder="Enter custom category name">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Description *</label>
+          <input id="expDescription" placeholder="e.g. Panel delivery">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Remarks</label>
+          <textarea id="expRemarks" placeholder="Optional notes" rows="3"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeExpenseLogger()">Cancel</button>
+      <button class="btn btn-green" onclick="submitExpense()">Log Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK EXPENSE ENTRY -->
+<div class="modal-overlay" id="bulkExpenseOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3>Bulk Expense Entry</h3>
+      <p>Add multiple expenses at once • Paste from Excel or enter manually</p>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px;display:flex;gap:8px;justify-content:space-between;align-items:center">
+        <div style="font-size:11px;color:var(--text2)">
+          Rows: <span id="bulkExpenseRowCount">5</span> • Valid: <span id="bulkExpenseValidCount" style="color:var(--green)">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="addBulkExpenseRow()" type="button">+ Add Row</button>
+          <button class="btn btn-outline btn-sm" onclick="removeBulkExpenseRow()" type="button" id="removeBulkRowBtn">- Remove</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="edit-tbl" id="bulkExpenseTbl">
+          <thead><tr>
+            <th>Date *</th><th>Category *</th><th>Description *</th><th>Amount *</th><th>Remarks</th><th></th>
+          </tr></thead>
+          <tbody id="bulkExpenseBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <span id="bulkExpenseStatus" style="font-size:11px;color:var(--text2)"></span>
+      </div>
+      <button class="btn btn-outline" onclick="closeBulkExpenseModal()">Cancel</button>
+      <button class="btn btn-green" onclick="submitBulkExpenses()">Save All</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK LOG ENTRY -->
+<div class="modal-overlay" id="bulkLogOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3>Bulk Work Log Entry</h3>
+      <p>Log multiple work entries at once • Paste from Excel or enter manually</p>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px;display:flex;gap:8px;justify-content:space-between;align-items:center">
+        <div style="font-size:11px;color:var(--text2)">
+          Rows: <span id="bulkLogRowCount">5</span> • Valid: <span id="bulkLogValidCount" style="color:var(--green)">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="addBulkLogRow()" type="button">+ Add Row</button>
+          <button class="btn btn-outline btn-sm" onclick="removeBulkLogRow()" type="button">- Remove</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="edit-tbl" id="bulkLogTbl">
+          <thead><tr>
+            <th>Date *</th><th>Activity *</th><th>Qty Done *</th><th></th>
+          </tr></thead>
+          <tbody id="bulkLogBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <span id="bulkLogStatus" style="font-size:11px;color:var(--text2)"></span>
+      </div>
+      <button class="btn btn-outline" onclick="closeBulkLogModal()">Cancel</button>
+      <button class="btn btn-green" onclick="submitBulkLogs()">Save All</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT TYPE SELECTOR -->
+<div class="modal-overlay" id="importTypeOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3>Select Import Type</h3>
+      <p>What kind of data are you importing?</p>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <button class="btn btn-blue" onclick="selectImportType('activities')" style="padding:16px;text-align:left;justify-content:flex-start;white-space:normal">
+        <div style="font-weight:600;margin-bottom:4px">📊 Master Activity Data</div>
+        <div style="font-size:11px;opacity:0.8">Define activities, quantities, units, and targets — one-time setup</div>
+      </button>
+      <button class="btn btn-blue" onclick="selectImportType('logs')" style="padding:16px;text-align:left;justify-content:flex-start;white-space:normal">
+        <div style="font-weight:600;margin-bottom:4px">📋 Activity Logger Data</div>
+        <div style="font-size:11px;opacity:0.8">Daily work entries with dates, activities, and quantities completed</div>
+      </button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('importTypeOverlay')">Cancel</button>
+    </div>
+  </div>
+</div>

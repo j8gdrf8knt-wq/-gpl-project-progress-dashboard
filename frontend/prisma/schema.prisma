@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Project {
+  id            String          @id @default(cuid())
+  name          String
+  client        String?
+  subtitle      String?
+  startDate     DateTime
+  targetDate    DateTime
+  reportDate    DateTime?
+  estimatedCost Float?          @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  activities    Activity[]
+  items         BOQItem[]
+  expenses      ExpenseEntry[]
+}
+
+model Activity {
+  id           String    @id @default(cuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  qty          Float     @default(0)
+  unit         String    @default("")
+  todayAchiev  Float     @default(0)
+  pctToday     Float     @default(0)
+  totalPresent Float     @default(0)
+  pctTotal     Float     @default(0)
+  pctProject   Float     @default(0)
+  targetDate   DateTime?
+  availDays    Int       @default(0)
+  reqRate      Float     @default(0)
+  reqManpower  Int       @default(0)
+  personsDay   Int       @default(0)
+  highlighted  Boolean   @default(false)
+  order        Int       @default(0)
+}
+
+model BOQItem {
+  id         String         @id @default(cuid())
+  projectId  String
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sl         Int
+  desc       String
+  qty        Float          @default(0)
+  unit       String         @default("")
+  unitPrice  Float          @default(0)
+  totalPrice Float          @default(0)
+  totalCost  Float          @default(0)
+  offerPrice Float          @default(0)
+  expenses   ExpenseEntry[]
+}
+
+model ExpenseEntry {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date        DateTime
+  category    String
+  description String
+  amount      Float
+  boqItemId   String?
+  boqItem     BOQItem? @relation(fields: [boqItemId], references: [id])
+  adminCost   Float?   @default(0)
+  directCost  Float?   @default(0)
+  afterSale   Float?   @default(0)
+  contingency Float?   @default(0)
+  remarks     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
