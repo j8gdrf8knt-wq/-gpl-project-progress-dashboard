@@ -8,7 +8,7 @@ interface DetectionResult {
   sheets: string[]
   selectedSheet: string
   headers: string[]
-  mapping: Record<string, number>
+  mapping: Record<string, number | undefined>
   preview: unknown[][]
   confidence: number
 }
