@@ -2,9 +2,16 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "gpl-dashboard",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["manage.py", "runserver", "8080"],
+      "name": "gpl-dashboard-backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/app.js"],
+      "port": 8080,
+      "autoPort": false
+    },
+    {
+      "name": "gpl-dashboard-frontend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd frontend && npx next dev --port 8080"],
       "port": 8080
     }
   ]

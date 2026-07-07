@@ -116,13 +116,11 @@ function applySetupProject(){
   p.areas = areas;
   p.logs = [];
 
-  persist();
-  // Reload project data from backend to get database IDs
-  setTimeout(() => {
+  persist().then(() => {
     loadProjects();
     closeModal('setupProjOverlay');
     showToast('✓','Project setup complete. Now log daily work!','green');
-  }, 500);
+  });
 }
 
 // ── Log Daily Work ────────────────────────────────────────────
@@ -188,13 +186,11 @@ function submitDailyLog(){
   // Clear inputs
   document.getElementById('lwQty').value = '';
 
-  persist();
-
-  setTimeout(() => {
+  persist().then(() => {
     loadProjects();
     closeModal('logWorkOverlay');
     showToast('✓','Work logged & dashboard updated','green');
-  }, 500);
+  });
 }
 
 // ── BOQ Edit ───────────────────────────────────────────────────
@@ -418,6 +414,87 @@ function openBulkExpenseModal(){
   document.getElementById('bulkExpenseBody').innerHTML = '';
   for(let i=0;i<5;i++) addBulkExpenseRow();
   document.getElementById('bulkExpenseOverlay').classList.add('open');
+
+  // Add paste listener
+  const tbody = document.getElementById('bulkExpenseBody');
+  tbody.onpaste = (e) => handleBulkPaste(e, 'expenses');
+}
+
+function parsePastedData(text){
+  // Parse tab or comma-separated pasted data (e.g. from Excel)
+  const lines = text.trim().split(/\r?\n/);
+  return lines.map(line => {
+    // Try tab-separated first, then comma
+    const values = line.includes('\t')
+      ? line.split('\t')
+      : line.split(',');
+    return values.map(v => v.trim());
+  }).filter(row => row.some(v => v)); // Remove empty rows
+}
+
+function handleBulkPaste(e, type){
+  e.preventDefault();
+  const text = e.clipboardData.getData('text');
+  const rows = parsePastedData(text);
+
+  if(!rows.length) return;
+
+  const tbody = type === 'expenses'
+    ? document.getElementById('bulkExpenseBody')
+    : document.getElementById('bulkLogBody');
+
+  // Clear existing empty rows and fill with pasted data
+  const existingRows = tbody.querySelectorAll('tr');
+  if(existingRows.length <= 5) {
+    // Replace the default 5 empty rows
+    existingRows.forEach(r => r.remove());
+  }
+
+  rows.forEach((cols, rowIdx) => {
+    if(type === 'expenses'){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="date" class="bulk-exp-date" value="${cols[0]||''}" data-field="date"></td>
+        <td><select class="bulk-exp-category" data-field="category">
+          <option value="">— Select —</option>
+          <option value="Foreign Item Purchase" ${cols[1]?.includes('Foreign')?'selected':''}>Foreign Item Purchase</option>
+          <option value="Local Item Purchase" ${cols[1]?.includes('Local')?'selected':''}>Local Item Purchase</option>
+          <option value="Installation & Commissioning" ${cols[1]?.includes('Install')?'selected':''}>Installation & Commissioning</option>
+          <option value="Conveyance, Transport & Logistics" ${cols[1]?.includes('Convey')?'selected':''}>Conveyance, Transport & Logistics</option>
+          <option value="Fooding" ${cols[1]?.includes('Food')?'selected':''}>Fooding</option>
+          <option value="Hotel Rent" ${cols[1]?.includes('Hotel')?'selected':''}>Hotel Rent</option>
+          <option value="Daily Allowance" ${cols[1]?.includes('Daily')?'selected':''}>Daily Allowance</option>
+          <option value="Others Expenses" ${cols[1]?.includes('Other')?'selected':''}>Others Expenses</option>
+        </select></td>
+        <td><input type="text" class="bulk-exp-desc" placeholder="Description" value="${cols[2]||''}" data-field="description"></td>
+        <td><input type="number" class="bulk-exp-amount" placeholder="0.00" step="0.01" min="0" value="${cols[3]||''}" data-field="amount"></td>
+        <td><input type="text" class="bulk-exp-remarks" placeholder="Optional" value="${cols[4]||''}" data-field="remarks"></td>
+        <td style="text-align:center"><button class="btn btn-outline btn-xs" onclick="this.closest('tr').remove()" type="button">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+    } else {
+      // Log type — match activity by name to get ID
+      const p = PROJECTS[currentProjectId];
+      const actName = cols[1]||'';
+      const matchedAct = (p?.activities||[]).find(a => a.name.toLowerCase() === actName.toLowerCase());
+      const actId = matchedAct?.id || '';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="date" class="bulk-log-date" value="${cols[0]||''}" data-field="date"></td>
+        <td><select class="bulk-log-activity" data-field="activity">
+          <option value="">— Select —</option>
+          ${(p?.activities||[]).map(a=>`<option value="${a.id}" ${a.id===actId?'selected':''}>${a.name}</option>`).join('')}
+        </select></td>
+        <td><input type="number" class="bulk-log-qty" placeholder="0.00" step="0.01" min="0" value="${cols[2]||''}" data-field="qty_done"></td>
+        <td style="text-align:center"><button class="btn btn-outline btn-xs" onclick="this.closest('tr').remove()" type="button">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+  });
+
+  if(type === 'expenses') updateBulkExpenseCount();
+  else updateBulkLogCount();
 }
 
 function closeBulkExpenseModal(){
@@ -547,6 +624,10 @@ function openBulkLogModal(){
   document.getElementById('bulkLogBody').innerHTML = '';
   for(let i=0;i<5;i++) addBulkLogRow();
   document.getElementById('bulkLogOverlay').classList.add('open');
+
+  // Add paste listener
+  const tbody = document.getElementById('bulkLogBody');
+  tbody.onpaste = (e) => handleBulkPaste(e, 'logs');
 }
 
 function closeBulkLogModal(){

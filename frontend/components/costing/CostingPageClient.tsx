@@ -4,6 +4,7 @@ import type { BOQItem, ExpenseEntry } from '@/types'
 import ExpenseLogger from './ExpenseLogger'
 import QuickExpenseEntry from './QuickExpenseEntry'
 import BulkExpenseLogger from './BulkExpenseLogger'
+import BulkExpensesPaster from './BulkExpensesPaster'
 import ExpensesTable from './ExpensesTable'
 
 type InputMode = 'quick' | 'single' | 'bulk'
@@ -20,6 +21,7 @@ export default function CostingPageClient({
   const [inputMode, setInputMode] = useState<InputMode>('single')
   const [isLoggerOpen, setIsLoggerOpen] = useState(false)
   const [isBulkOpen, setIsBulkOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const categories = useMemo(() => {
     const unique = Array.from(new Set([...items.map((i) => i.desc), 'Labour', 'Transport', 'Equipment', 'Other']))
@@ -33,6 +35,7 @@ export default function CostingPageClient({
         <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--gpl-border)', background: 'rgba(255,255,255,.015)' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--gpl-text2)' }}>Expense Logger ({expenses.length} entries)</div>
+            <BulkExpensesPaster projectId={projectId} onSuccess={() => setRefreshKey(k => k + 1)} />
           </div>
 
           {/* Input Mode Tabs */}

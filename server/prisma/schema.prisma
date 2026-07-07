@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Project {
+  id         String   @id @db.VarChar(50)
+  name       String   @db.VarChar(200)
+  client     String   @db.VarChar(200)
+  startDate  String   @map("start_date") @db.VarChar(20)
+  targetDate String   @map("target_date") @db.VarChar(20)
+  reportDate String   @map("report_date") @db.VarChar(20)
+  createdAt  DateTime @map("created_at") @db.Timestamptz(6)
+
+  activities Activity[]
+  areas      Area[]
+  boqItems   BOQItem[]
+  logs       DailyLogEntry[]
+  expenses   ExpenseEntry[]
+
+  @@map("dashboard_project")
+}
+
+model Activity {
+  id          BigInt @id @default(autoincrement())
+  name        String @db.VarChar(200)
+  unit        String @db.VarChar(50)
+  order       Int
+  projectId   String @map("project_id") @db.VarChar(50)
+  manDayRate  Float  @map("man_day_rate")
+  weightPct   Float  @map("weight_pct")
+  qty         Float
+
+  project      Project               @relation(fields: [projectId], references: [id], map: "dashboard_activity_project_id_a5dd88a9_fk_dashboard_project_id")
+  quotas       AreaActivityQuota[]
+  logs         DailyLogEntry[]
+
+  @@map("dashboard_activity")
+}
+
+model Area {
+  id        BigInt @id @default(autoincrement())
+  name      String @db.VarChar(200)
+  order     Int
+  projectId String @map("project_id") @db.VarChar(50)
+
+  project Project             @relation(fields: [projectId], references: [id], map: "dashboard_area_project_id_b075a246_fk_dashboard_project_id")
+  quotas  AreaActivityQuota[]
+  logs    DailyLogEntry[]
+
+  @@map("dashboard_area")
+}
+
+model AreaActivityQuota {
+  id         BigInt @id @default(autoincrement())
+  qty        Float
+  activityId BigInt @map("activity_id")
+  areaId     BigInt @map("area_id")
+
+  activity Activity @relation(fields: [activityId], references: [id], map: "dashboard_areaactivi_activity_id_d3c47845_fk_dashboard")
+  area     Area     @relation(fields: [areaId], references: [id], map: "dashboard_areaactivi_area_id_d9dc0e85_fk_dashboard")
+
+  @@unique([areaId, activityId], map: "dashboard_areaactivityquota_area_id_activity_id_488eea7b_uniq")
+  @@map("dashboard_areaactivityquota")
+}
+
+model BOQItem {
+  id         BigInt @id @default(autoincrement())
+  sl         Int
+  desc       String @db.VarChar(300)
+  qty        Float
+  unit       String @db.VarChar(50)
+  unitPrice  Float  @map("unit_price")
+  totalPrice Float  @map("total_price")
+  totalCost  Float  @map("total_cost")
+  offerPrice Float  @map("offer_price")
+  order      Int
+  projectId  String @map("project_id") @db.VarChar(50)
+
+  project  Project        @relation(fields: [projectId], references: [id], map: "dashboard_boqitem_project_id_18faa8f2_fk_dashboard_project_id")
+  expenses ExpenseEntry[]
+
+  @@map("dashboard_boqitem")
+}
+
+model DailyLogEntry {
+  id         BigInt   @id @default(autoincrement())
+  date       String   @db.VarChar(20)
+  qtyDone    Float    @map("qty_done")
+  createdAt  DateTime @map("created_at") @db.Timestamptz(6)
+  activityId BigInt   @map("activity_id")
+  areaId     BigInt   @map("area_id")
+  projectId  String   @map("project_id") @db.VarChar(50)
+
+  activity Activity @relation(fields: [activityId], references: [id], map: "dashboard_dailylogen_activity_id_fde58a7a_fk_dashboard")
+  project  Project  @relation(fields: [projectId], references: [id], map: "dashboard_dailylogen_project_id_fe152e4e_fk_dashboard")
+  area     Area     @relation(fields: [areaId], references: [id], map: "dashboard_dailylogentry_area_id_ae8fc510_fk_dashboard_area_id")
+
+  @@map("dashboard_dailylogentry")
+}
+
+model ExpenseEntry {
+  id          BigInt   @id @default(autoincrement())
+  date        String   @db.VarChar(20)
+  category    String   @db.VarChar(200)
+  description String   @db.VarChar(500)
+  amount      Float
+  remarks     String
+  createdAt   DateTime @map("created_at") @db.Timestamptz(6)
+  boqItemId   BigInt?  @map("boq_item_id")
+  projectId   String   @map("project_id") @db.VarChar(50)
+
+  boqItem BOQItem? @relation(fields: [boqItemId], references: [id], map: "dashboard_expenseent_boq_item_id_d33b8e07_fk_dashboard")
+  project Project  @relation(fields: [projectId], references: [id], map: "dashboard_expenseent_project_id_3d2f6681_fk_dashboard")
+
+  @@map("dashboard_expenseentry")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String?  @unique @db.VarChar(255)
+  username     String?  @unique @db.VarChar(150)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  firstName    String   @default("") @map("first_name") @db.VarChar(150)
+  lastName     String   @default("") @map("last_name") @db.VarChar(150)
+  isActive     Boolean  @default(false) @map("is_active")
+  isApproved   Boolean  @default(false) @map("is_approved")
+  isAdmin      Boolean  @default(false) @map("is_admin")
+  permissions  String[] @default([])
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("gpl_users")
+}

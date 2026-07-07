@@ -38,8 +38,9 @@ function readExcelFile(file){
           pendingXLData = {headers:rows[0]||[], rows:rows.slice(1), sheetName, type:'expenses'};
           openExpenseColMapper(rows[0]||[], rows.slice(1));
         } else {
-          // BOQ data
-          parseBOQFromRows(rows);
+          // BOQ data — use column-mapper instead of positional guessing
+          pendingXLData = {headers:rows[0]||[], rows:rows.slice(1), sheetName, type:'boq'};
+          openBOQColMapper(rows[0]||[], rows.slice(1));
         }
       } else {
         // Progress view - show import type selector
@@ -92,6 +93,105 @@ function selectImportType(type){
     // Daily work log data
     openLogColMapper(headerList, rows);
   }
+}
+
+function openBOQColMapper(headers, rows){
+  const fields = [
+    {key:'sl',label:'SL / Item No.',required:false},
+    {key:'desc',label:'Item Description',required:true},
+    {key:'qty',label:'Quantity',required:true},
+    {key:'unit',label:'Unit',required:true},
+    {key:'unitPrice',label:'Unit Price (BDT)',required:false},
+    {key:'totalPrice',label:'Total Price (BDT)',required:true},
+    {key:'totalCost',label:'Total Cost (BDT)',required:false},
+    {key:'offerPrice',label:'Offer Price (BDT)',required:false},
+  ];
+  const preview = rows.slice(0,3).map(r=>'['+r.slice(0,6).map(c=>String(c).slice(0,15)).join(', ')+']').join('\n');
+  document.getElementById('colMapBody').innerHTML = `
+    <p style="font-size:11px;color:var(--text2);margin-bottom:12px">📦 BOQ Import • Headers found: <strong style="color:var(--text)">${headers.join(' | ')}</strong></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      ${fields.map(f=>`
+        <div class="form-group">
+          <label>${f.label}${f.required?'<span style="color:var(--red)"> *</span>':''}</label>
+          <select data-field="${f.key}">
+            <option value="">— skip —</option>
+            ${headers.map((h,i)=>`<option value="${i}" ${guessBOQCol(h,f.key)?'selected':''}>${h||'Col '+i}</option>`).join('')}
+          </select>
+        </div>`).join('')}
+    </div>
+    <pre style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;font-size:10px;color:var(--text2);white-space:pre-wrap">${preview}</pre>
+  `;
+  document.getElementById('colMapBody').dataset.type = 'boq';
+  document.getElementById('colMapOverlay').classList.add('open');
+}
+
+function guessBOQCol(header, field){
+  const h = header.toLowerCase().trim().replace(/[^\w\s]/g,'');
+  const map = {
+    sl:['sl','item no','sequence','number'],
+    desc:['desc','description','item','name'],
+    qty:['qty','quantity'],
+    unit:['unit','uom','measurement'],
+    unitPrice:['unit price','unit cost','rate'],
+    totalPrice:['total price','line price','extended price'],
+    totalCost:['total cost','total','cost'],
+    offerPrice:['offer','offer price','quoted price']
+  };
+  if((map[field]||[]).some(k=>h.includes(k))) return true;
+  if(h.includes(field)) return true;
+  return false;
+}
+
+function validateAndImportBOQ(colMap){
+  if(colMap.desc===undefined || colMap.qty===undefined || colMap.unit===undefined || colMap.totalPrice===undefined){
+    showToast('✕','Description, Quantity, Unit, and Total Price columns are required','red');
+    return;
+  }
+  const rows = pendingXLData.rows;
+  const validated = rows.map((r,idx)=>{
+    const desc = String(r[colMap.desc]||'').split('\n')[0].trim().slice(0,120);
+    const qty = +r[colMap.qty]||0;
+    const unit = String(r[colMap.unit]||'').split('\n')[0].trim();
+    const totalPrice = +r[colMap.totalPrice]||0;
+
+    let error = null;
+    if(!desc) error = 'Missing description';
+    else if(!qty || qty <= 0) error = 'Invalid/missing quantity';
+    else if(!unit) error = 'Missing unit';
+    else if(!totalPrice || totalPrice <= 0) error = 'Invalid/missing total price';
+
+    return {
+      idx, desc, qty, unit, totalPrice, valid: !error, error,
+      sl: +r[colMap.sl]||idx+1,
+      unitPrice: +r[colMap.unitPrice]||0,
+      totalCost: +r[colMap.totalCost]||0,
+      offerPrice: +r[colMap.offerPrice]||0,
+      _row: r
+    };
+  });
+
+  const valid = validated.filter(v=>v.valid);
+  const invalid = validated.filter(v=>!v.valid);
+
+  if(!valid.length){
+    showToast('✕','No valid BOQ rows found','red');
+    return;
+  }
+
+  if(invalid.length > 0){
+    showValidationPreview('boq', valid, invalid, ()=>commitBOQImport(valid));
+  } else {
+    commitBOQImport(valid);
+  }
+}
+
+function commitBOQImport(validItems){
+  PROJECTS[currentProjectId].items = validItems;
+  persist();
+  closeModal('colMapOverlay');
+  destroyCharts();
+  render();
+  showToast('✓','Imported '+validItems.length+' BOQ items','green');
 }
 
 function parseBOQFromRows(rows){
@@ -315,7 +415,7 @@ function openLogColMapper(headers, rows){
   document.getElementById('colMapOverlay').classList.add('open');
 }
 
-function applyColMap(){
+function previewAndImport(){
   const selects = document.querySelectorAll('#colMapBody [data-field]');
   const colMap = {};
   selects.forEach(s=>{ if(s.value!=='') colMap[s.dataset.field]=+s.value; });
@@ -323,125 +423,244 @@ function applyColMap(){
   const colMapBody = document.getElementById('colMapBody');
   const type = colMapBody.dataset.type;
 
-  if(type === 'expenses'){
-    // Expense import
-    if(colMap.date===undefined || colMap.amount===undefined || colMap.category===undefined || colMap.description===undefined){
-      showToast('✕','Date, Amount, Category, and Description columns are required','red');
-      return;
-    }
-    const rows = pendingXLData.rows;
-    const expenses = rows.map(r=>{
-      const date = String(r[colMap.date]||'').trim();
-      const amount = +r[colMap.amount]||0;
-      const category = String(r[colMap.category]||'').trim();
-      const description = String(r[colMap.description]||'').trim();
-      const remarks = colMap.remarks !== undefined ? String(r[colMap.remarks]||'').trim() : '';
+  // Delegate to validation/import based on type
+  if(type === 'expenses') validateAndImportExpenses(colMap);
+  else if(type === 'logs') validateAndImportLogs(colMap);
+  else if(type === 'boq') validateAndImportBOQ(colMap);
+  else validateAndImportActivities(colMap);
+}
 
-      if(!date || !amount || !category || !description || amount <= 0) return null;
-      return {date, amount, category, description, remarks};
-    }).filter(Boolean);
+function applyColMap(){
+  previewAndImport();
+}
 
-    if(!expenses.length){
-      showToast('✕','No valid expense rows found','red');
-      return;
-    }
-
-    // Import expenses via bulk endpoint
-    apiFetch(`/api/projects/${currentProjectId}/expenses/bulk/`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({expenses})
-    }).then(r=>r.json()).then(data=>{
-      if(data.created){
-        const p = PROJECTS[currentProjectId];
-        if(!p.expenses) p.expenses = [];
-        expenses.forEach(e=>p.expenses.unshift({...e}));
-        closeModal('colMapOverlay');
-        destroyCharts();
-        render();
-        showToast('✓','Imported '+data.created+' expenses','green');
-      } else {
-        showToast('✕','Failed to import expenses','red');
-      }
-    }).catch(e=>{
-      showToast('✕','Error importing expenses','red');
-    });
-  } else if(type === 'logs'){
-    // Daily work log import
-    if(colMap.date===undefined || colMap.area===undefined || colMap.activity===undefined || colMap.qty_done===undefined){
-      showToast('✕','Date, Area, Activity, and Quantity Done columns are required','red');
-      return;
-    }
-    const rows = pendingXLData.rows;
-    const p = PROJECTS[currentProjectId];
-    const areas = p.areas || [];
-    const activities = p.activities || [];
-
-    const logs = rows.map(r=>{
-      let dateVal = r[colMap.date];
-      // Handle various date formats
-      let date;
-      if(dateVal instanceof Date) {
-        date = dateVal.toISOString().split('T')[0];
-      } else if(typeof dateVal === 'number') {
-        // Excel serial date: 1 = 1900-01-01
-        const excelEpoch = new Date(1900, 0, 1).getTime();
-        const jsDate = new Date(excelEpoch + (dateVal - 1) * 86400000);
-        date = jsDate.toISOString().split('T')[0];
-      } else {
-        date = String(dateVal||'').trim();
-      }
-
-      const areaName = String(r[colMap.area]||'').trim();
-      const activityName = String(r[colMap.activity]||'').trim();
-      const qty = +r[colMap.qty_done]||0;
-
-      if(!date || !areaName || !activityName || qty <= 0) return null;
-
-      // Match area by name
-      const area = areas.find(a=>a.name.toLowerCase()===areaName.toLowerCase());
-      if(!area) return null;
-
-      // Match activity by name
-      const activity = activities.find(a=>a.name.toLowerCase()===activityName.toLowerCase());
-      if(!activity) return null;
-
-      return {date, area_id: area.id, activity_id: activity.id, qty_done: qty};
-    }).filter(Boolean);
-
-    if(!logs.length){
-      showToast('✕','No valid work log rows found (check area and activity names match setup)','red');
-      return;
-    }
-
-    if(!p.logs) p.logs = [];
-    logs.forEach(log=>p.logs.unshift({...log, id: Math.random()}));
-
-    closeModal('colMapOverlay');
-    destroyCharts();
-    render();
-    showToast('✓','Imported '+logs.length+' work log entries','green');
-  } else {
-    // Activity master data import
-    if(colMap.name===undefined){ showToast('✕','Activity Name column is required','red'); return; }
-    const rows = pendingXLData.rows;
-    const activities = rows.map(r=>{
-      if(!r[colMap.name]) return null;
-      return {
-        name:String(r[colMap.name]||'').trim(),
-        qty:+r[colMap.qty]||0, unit:String(r[colMap.unit]||''),
-        todayAchiev:+r[colMap.todayAchiev]||0, pctToday:+r[colMap.pctToday]||0,
-        totalPresent:+r[colMap.totalPresent]||0, pctTotal:+r[colMap.pctTotal]||0,
-        pctProject:+r[colMap.pctProject]||0,
-        targetDate:r[colMap.targetDate]||'', availDays:+r[colMap.availDays]||0,
-        reqRate:+r[colMap.reqRate]||0, reqManpower:+r[colMap.reqManpower]||0,
-        personsDay:+r[colMap.personsDay]||0, highlighted:false
-      };
-    }).filter(Boolean);
-    PROJECTS[currentProjectId].activities = activities;
-    persist(); closeModal('colMapOverlay'); destroyCharts(); render();
-    showToast('✓','Imported '+activities.length+' activities','green');
+function validateAndImportExpenses(colMap){
+  if(colMap.date===undefined || colMap.amount===undefined || colMap.category===undefined || colMap.description===undefined){
+    showToast('✕','Date, Amount, Category, and Description columns are required','red');
+    return;
   }
+  const rows = pendingXLData.rows;
+  const validated = rows.map((r,idx)=>{
+    const date = String(r[colMap.date]||'').trim();
+    const amount = +r[colMap.amount]||0;
+    const category = String(r[colMap.category]||'').trim();
+    const description = String(r[colMap.description]||'').trim();
+    const remarks = colMap.remarks !== undefined ? String(r[colMap.remarks]||'').trim() : '';
+
+    let error = null;
+    if(!date) error = 'Missing date';
+    else if(!amount || amount <= 0) error = 'Invalid/missing amount';
+    else if(!category) error = 'Missing category';
+    else if(!description) error = 'Missing description';
+
+    return {
+      idx, date, amount, category, description, remarks, valid: !error, error,
+      _row: r
+    };
+  });
+
+  const valid = validated.filter(v=>v.valid);
+  const invalid = validated.filter(v=>!v.valid);
+
+  if(!valid.length){
+    showToast('✕','No valid expense rows found','red');
+    return;
+  }
+
+  if(invalid.length > 0){
+    showValidationPreview('expenses', valid, invalid, ()=>commitExpenseImport(valid));
+  } else {
+    commitExpenseImport(valid);
+  }
+}
+
+function commitExpenseImport(validRows){
+  const expenses = validRows.map(v=>({
+    date: v.date, amount: v.amount, category: v.category,
+    description: v.description, remarks: v.remarks
+  }));
+
+  apiFetch(`/api/projects/${currentProjectId}/expenses/bulk/`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({expenses})
+  }).then(r=>r.json()).then(data=>{
+    if(data.created){
+      const p = PROJECTS[currentProjectId];
+      if(!p.expenses) p.expenses = [];
+      expenses.forEach(e=>p.expenses.unshift({...e}));
+      closeModal('colMapOverlay');
+      destroyCharts();
+      render();
+      showToast('✓','Imported '+data.created+' expenses','green');
+    } else {
+      showToast('✕','Failed to import expenses','red');
+    }
+  }).catch(e=>{
+    showToast('✕','Error importing expenses','red');
+  });
+}
+
+function validateAndImportLogs(colMap){
+  if(colMap.date===undefined || colMap.area===undefined || colMap.activity===undefined || colMap.qty_done===undefined){
+    showToast('✕','Date, Area, Activity, and Quantity Done columns are required','red');
+    return;
+  }
+  const rows = pendingXLData.rows;
+  const p = PROJECTS[currentProjectId];
+  const areas = p.areas || [];
+  const activities = p.activities || [];
+
+  const validated = rows.map((r,idx)=>{
+    let dateVal = r[colMap.date];
+    let date;
+    if(dateVal instanceof Date) {
+      date = dateVal.toISOString().split('T')[0];
+    } else if(typeof dateVal === 'number') {
+      const excelEpoch = new Date(1900, 0, 1).getTime();
+      const jsDate = new Date(excelEpoch + (dateVal - 1) * 86400000);
+      date = jsDate.toISOString().split('T')[0];
+    } else {
+      date = String(dateVal||'').trim();
+    }
+
+    const areaName = String(r[colMap.area]||'').trim();
+    const activityName = String(r[colMap.activity]||'').trim();
+    const qty = +r[colMap.qty_done]||0;
+
+    let error = null;
+    if(!date) error = 'Missing date';
+    else if(!areaName) error = 'Missing area';
+    else if(!activityName) error = 'Missing activity';
+    else if(!qty || qty <= 0) error = 'Invalid/missing quantity';
+    else {
+      const area = areas.find(a=>a.name.toLowerCase()===areaName.toLowerCase());
+      if(!area) error = `Area "${areaName}" not found in project setup`;
+      else {
+        const activity = activities.find(a=>a.name.toLowerCase()===activityName.toLowerCase());
+        if(!activity) error = `Activity "${activityName}" not found in project setup`;
+      }
+    }
+
+    const area = areas.find(a=>a.name.toLowerCase()===areaName.toLowerCase());
+    const activity = activities.find(a=>a.name.toLowerCase()===activityName.toLowerCase());
+
+    return {
+      idx, date, areaName, activityName, qty, valid: !error, error,
+      area_id: area?.id, activity_id: activity?.id,
+      _row: r
+    };
+  });
+
+  const valid = validated.filter(v=>v.valid);
+  const invalid = validated.filter(v=>!v.valid);
+
+  if(!valid.length){
+    showToast('✕','No valid work log rows found','red');
+    return;
+  }
+
+  if(invalid.length > 0){
+    showValidationPreview('logs', valid, invalid, ()=>commitLogImport(valid));
+  } else {
+    commitLogImport(valid);
+  }
+}
+
+function commitLogImport(validRows){
+  const p = PROJECTS[currentProjectId];
+  const logs = validRows.map(v=>({
+    date: v.date, area_id: v.area_id, activity_id: v.activity_id, qty_done: v.qty
+  }));
+
+  if(!p.logs) p.logs = [];
+  logs.forEach(log=>p.logs.unshift({...log, id: Math.random()}));
+
+  persist();
+  closeModal('colMapOverlay');
+  destroyCharts();
+  render();
+  showToast('✓','Imported '+logs.length+' work log entries','green');
+}
+
+function validateAndImportActivities(colMap){
+  if(colMap.name===undefined){
+    showToast('✕','Activity Name column is required','red');
+    return;
+  }
+  const rows = pendingXLData.rows;
+  const validated = rows.map((r,idx)=>{
+    const name = String(r[colMap.name]||'').trim();
+    let error = null;
+    if(!name) error = 'Missing activity name';
+
+    return {
+      idx, name,
+      qty: +r[colMap.qty]||0, unit: String(r[colMap.unit]||''),
+      valid: !error, error,
+      _row: r
+    };
+  });
+
+  const valid = validated.filter(v=>v.valid).map(v=>({
+    name: v.name, qty: v.qty, unit: v.unit,
+    todayAchiev: 0, pctToday: 0, totalPresent: 0, pctTotal: 0, pctProject: 0,
+    targetDate: '', availDays: 0, reqRate: 0, reqManpower: 0, personsDay: 0, highlighted: false
+  }));
+  const invalid = validated.filter(v=>!v.valid);
+
+  if(!valid.length){
+    showToast('✕','No valid activity rows found','red');
+    return;
+  }
+
+  if(invalid.length > 0){
+    showValidationPreview('activities', valid, invalid, ()=>commitActivityImport(valid));
+  } else {
+    commitActivityImport(valid);
+  }
+}
+
+function commitActivityImport(validActivities){
+  PROJECTS[currentProjectId].activities = validActivities;
+  persist();
+  closeModal('colMapOverlay');
+  destroyCharts();
+  render();
+  showToast('✓','Imported '+validActivities.length+' activities','green');
+}
+
+function showValidationPreview(type, valid, invalid, onConfirm){
+  const typeLabel = {expenses:'Expenses', logs:'Work Logs', boq:'BOQ Items', activities:'Activities'}[type] || type;
+  const preview = `
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
+        <span style="color:var(--green);font-weight:600">✓ ${valid.length} valid</span>
+        <span style="color:var(--red);font-weight:600"> • ✗ ${invalid.length} skipped</span>
+      </div>
+      ${invalid.length > 0 ? `
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px;max-height:200px;overflow-y:auto">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px"><strong>Skipped rows:</strong></div>
+          ${invalid.map(inv=>`
+            <div style="font-size:10.5px;color:var(--red);padding:4px 0;border-bottom:1px solid var(--border)">
+              Row ${inv.idx+2}: ${inv.error}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('colMapOverlay')">Cancel</button>
+      <button class="btn btn-green btn-sm" onclick="(${onConfirm.toString()})()">Import ${valid.length} ${typeLabel}</button>
+    </div>
+  `;
+
+  document.getElementById('colMapBody').innerHTML = `
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px"><strong>Review before import</strong></p>
+    ${preview}
+  `;
+}
+
 }
 
 // ── Template Download ──────────────────────────────────────────

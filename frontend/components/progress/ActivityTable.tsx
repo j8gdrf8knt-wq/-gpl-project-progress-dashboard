@@ -4,6 +4,7 @@ import type { Activity } from '@/types'
 import { activityCompletionPct, badgeColor } from '@/lib/computations'
 import { fmtDate } from '@/lib/formatters'
 import EditActivityModal from './EditActivityModal'
+import BulkActivitiesPaster from './BulkActivitiesPaster'
 
 const BADGE = {
   green: 'rgba(0,212,136,.18)',
@@ -41,13 +42,16 @@ export default function ActivityTable({ activities, projectId, daysWorked }: Pro
         >
           Activity Detail
         </span>
-        <button
-          onClick={() => setEditOpen(true)}
-          className="text-xs px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-80"
-          style={{ borderColor: 'var(--gpl-blue)', color: 'var(--gpl-blue)' }}
-        >
-          ✏ Edit Data
-        </button>
+        <div className="flex gap-2">
+          <BulkActivitiesPaster projectId={projectId} />
+          <button
+            onClick={() => setEditOpen(true)}
+            className="text-xs px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-80"
+            style={{ borderColor: 'var(--gpl-blue)', color: 'var(--gpl-blue)' }}
+          >
+            ✏ Edit Data
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-[11px]" style={{ minWidth: 900 }}>

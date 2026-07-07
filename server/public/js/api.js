@@ -12,13 +12,15 @@ function loadProjects(){
 
 function persist(){
   const p = PROJECTS[currentProjectId];
-  if(!p) return;
-  apiFetch('/api/projects/save/', {
+  if(!p) return Promise.resolve();
+  return apiFetch('/api/projects/save/', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(p)
+  }).then(r=>r.json()).then(data=>{
+    if(data.ok) markUnsaved();
+    return data;
   });
-  markUnsaved();
 }
 
 // ── Unsaved indicator ──────────────────────────────────────────

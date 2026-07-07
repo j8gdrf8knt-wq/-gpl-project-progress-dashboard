@@ -1,0 +1,37 @@
+<%- include('../partials/auth_layout_head', { title: 'Sign up — GPL Power BI Dashboard' }) %>
+<h1>Create an account</h1>
+<p class="sub">Only @<%= allowedDomain %> emails can sign up</p>
+
+<% if (error) { %>
+  <div class="auth-msg error"><%= error %></div>
+<% } %>
+
+<form method="post" action="/signup">
+  <input type="hidden" name="csrfToken" value="<%= csrfToken %>">
+  <div class="auth-field">
+    <label for="id_first_name">First name</label>
+    <input type="text" name="firstName" id="id_first_name" value="<%= values.firstName || '' %>" required>
+  </div>
+  <div class="auth-field">
+    <label for="id_last_name">Last name</label>
+    <input type="text" name="lastName" id="id_last_name" value="<%= values.lastName || '' %>">
+  </div>
+  <div class="auth-field">
+    <label for="id_email">Work email</label>
+    <input type="email" name="email" id="id_email" placeholder="you@<%= allowedDomain %>" value="<%= values.email || '' %>" required>
+  </div>
+  <div class="auth-field">
+    <label for="id_password1">Password</label>
+    <input type="password" name="password" id="id_password1" required>
+  </div>
+  <div class="auth-field">
+    <label for="id_password2">Confirm password</label>
+    <input type="password" name="password2" id="id_password2" required>
+  </div>
+  <button type="submit" class="btn btn-green auth-submit">Sign up</button>
+</form>
+
+<div class="auth-footer">
+  Already have an account? <a href="/login">Log in</a>
+</div>
+<%- include('../partials/auth_layout_foot') %>

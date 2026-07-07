@@ -1,0 +1,25 @@
+<%- include('../partials/auth_layout_head', { title: 'Log in — GPL Power BI Dashboard' }) %>
+<h1>Welcome back</h1>
+<p class="sub">Sign in with your Green Power account</p>
+
+<% if (error) { %>
+  <div class="auth-msg error"><%= error %></div>
+<% } %>
+
+<form method="post" action="/login">
+  <input type="hidden" name="csrfToken" value="<%= csrfToken %>">
+  <div class="auth-field">
+    <label for="id_email">Email or username</label>
+    <input type="text" name="email" id="id_email" autofocus required autocapitalize="off">
+  </div>
+  <div class="auth-field">
+    <label for="id_password">Password</label>
+    <input type="password" name="password" id="id_password" required>
+  </div>
+  <button type="submit" class="btn btn-green auth-submit">Log in</button>
+</form>
+
+<div class="auth-footer">
+  Don't have an account? <a href="/signup">Sign up</a>
+</div>
+<%- include('../partials/auth_layout_foot') %>
